@@ -1,12 +1,16 @@
 import { useState } from "react";
 import { isLocalStorageAvailable } from "../utils/localStorage";
+import SiteLinkButton from "./SiteLinkButton";
 
 const Header = ({ currency, setCurrency, amountReceived, setAmountReceived }) => {
   const [storageOk] = useState(() => isLocalStorageAvailable());
 
   return (
     <header className="desk-brand">
-      <h1>TicketCalc</h1>
+      <div className="flex items-start justify-between gap-3">
+        <h1>TicketCalc</h1>
+        <SiteLinkButton />
+      </div>
 
       {!storageOk && (
         <div className="alert-strip" role="alert" aria-live="polite">
