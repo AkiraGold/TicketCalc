@@ -1,5 +1,4 @@
 import { useState } from "react";
-import "./App.css";
 
 import { useTicketCalculator } from "./hooks/useTicketCalculator";
 import Header from "./components/Header";

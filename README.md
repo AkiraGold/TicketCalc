@@ -4,6 +4,10 @@ Box-office style ticket calculator for counting ticket types, totaling the sale,
 
 Set the currency and amount received, tap +/− on each ticket type, read total and change from the sticky bar. Ticket types (name + prices) are editable and kept in localStorage.
 
+![Desk](docs/desk-example.png)
+
+![Ticket types](docs/types-example.png)
+
 ## What it does
 
 - Dual currency pricing (CZK / EUR)
@@ -44,6 +48,7 @@ bun run lint
 ## Layout
 
 ```text
+docs/               screenshots for this README
 public/
 src/
   components/       Header, counters, summary, type manager/modal
@@ -51,10 +56,17 @@ src/
   utils/            localStorage helpers, money formatting
   App.jsx
   index.css         desk theme
+amplify.yml         Amplify Hosting build (Bun → dist/)
 index.html
 package.json
 bun.lock
 ```
+
+## Deploy
+
+Amplify Hosting uses `amplify.yml`: install Bun, `bun install --frozen-lockfile`, `bun run build`, publish `dist/`.
+
+No Amplify Gen 2 backend — static frontend only.
 
 ## License
 
