@@ -1,4 +1,3 @@
-// In-memory fallback storage when localStorage fails
 const memoryStorage = new Map();
 
 export const getInitialState = (key, defaultValue, isJSON = true) => {
@@ -8,7 +7,6 @@ export const getInitialState = (key, defaultValue, isJSON = true) => {
     return isJSON ? JSON.parse(savedValue) : savedValue;
   } catch (error) {
     console.warn(`localStorage failed for ${key}, using memory fallback:`, error);
-    // Try to get from memory fallback
     const memoryValue = memoryStorage.get(key);
     if (memoryValue !== undefined) return memoryValue;
     return defaultValue;
@@ -19,12 +17,10 @@ export const saveToLocalStorage = (key, value) => {
   try {
     const serializedValue = typeof value === 'string' ? value : JSON.stringify(value);
     localStorage.setItem(key, serializedValue);
-    // Also save to memory fallback
     memoryStorage.set(key, value);
     return { success: true, method: 'localStorage' };
   } catch (error) {
     console.warn(`localStorage failed for ${key}, using memory fallback:`, error);
-    // Fallback to memory storage
     try {
       memoryStorage.set(key, value);
       return { success: true, method: 'memory' };
@@ -52,7 +48,6 @@ export const clearLocalStorage = (key) => {
   }
 };
 
-// Check if localStorage is available
 export const isLocalStorageAvailable = () => {
   try {
     const test = '__localStorage_test__';
@@ -64,7 +59,6 @@ export const isLocalStorageAvailable = () => {
   }
 };
 
-// Get storage status for debugging
 export const getStorageStatus = () => {
   return {
     localStorage: isLocalStorageAvailable(),

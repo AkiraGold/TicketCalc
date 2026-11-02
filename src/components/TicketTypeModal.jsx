@@ -1,30 +1,44 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from "react";
+
+const emptyTicket = {
+  type: "",
+  priceCZK: "",
+  priceEUR: "",
+};
 
 const TicketTypeModal = ({ isOpen, modalType, ticket, onSave, onClose }) => {
-  const [currentTicket, setCurrentTicket] = useState({
-    type: "",
-    priceCZK: "",
-    priceEUR: "",
-  });
+  const [currentTicket, setCurrentTicket] = useState(emptyTicket);
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    if (ticket) {
-      setCurrentTicket(ticket);
-    } else {
-      setCurrentTicket({ type: "", priceCZK: "", priceEUR: "" });
-    }
+    if (!isOpen) return;
+    setCurrentTicket(
+      ticket
+        ? {
+            type: ticket.type ?? "",
+            priceCZK: ticket.priceCZK ?? "",
+            priceEUR: ticket.priceEUR ?? "",
+          }
+        : emptyTicket
+    );
     setErrors({});
-  }, [ticket]);
+  }, [isOpen, ticket]);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isOpen, onClose]);
 
   const handlePriceChange = (field, value) => {
-    // Allow numbers, decimals, commas, and empty string
-    // Convert comma to dot for display
     if (value === "" || /^[\d,]*\.?\d*$/.test(value)) {
-      // Replace comma with dot for internal storage
-      const normalizedValue = value.replace(',', '.');
+      const normalizedValue = value.replace(",", ".");
       setCurrentTicket({ ...currentTicket, [field]: normalizedValue });
-      // Clear error when user starts typing
       if (errors[field]) {
         setErrors({ ...errors, [field]: "" });
       }
@@ -33,122 +47,135 @@ const TicketTypeModal = ({ isOpen, modalType, ticket, onSave, onClose }) => {
 
   const validateForm = () => {
     const newErrors = {};
-    
     if (!currentTicket.type.trim()) {
-      newErrors.type = "Ticket type name is required";
+      newErrors.type = "Name is required";
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSave = () => {
-    if (validateForm()) {
-      // Convert prices to numbers, default to 0 if empty
-      const ticketToSave = {
-        ...currentTicket,
-        priceCZK: currentTicket.priceCZK ? parseFloat(currentTicket.priceCZK) : 0,
-        priceEUR: currentTicket.priceEUR ? parseFloat(currentTicket.priceEUR) : 0,
-      };
-      onSave(ticketToSave);
-      setCurrentTicket({ type: "", priceCZK: "", priceEUR: "" });
-      setErrors({});
-    }
-  };
+    if (!validateForm()) return;
 
-  const handleClose = () => {
-    setCurrentTicket({ type: "", priceCZK: "", priceEUR: "" });
+    onSave({
+      ...currentTicket,
+      priceCZK: currentTicket.priceCZK
+        ? parseFloat(currentTicket.priceCZK)
+        : 0,
+      priceEUR: currentTicket.priceEUR
+        ? parseFloat(currentTicket.priceEUR)
+        : 0,
+    });
+    setCurrentTicket(emptyTicket);
     setErrors({});
-    onClose();
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="modal modal-open" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-      <div className="modal-box">
-        <h3 id="modal-title" className="font-bold text-lg">
-          {modalType === "add" ? "Add New Ticket Type" : "Edit Ticket Type"}
+    <div
+      className="modal-layer"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+      onClick={onClose}
+    >
+      <div className="modal-sheet" onClick={(event) => event.stopPropagation()}>
+        <h3 id="modal-title" className="text-lg font-semibold tracking-tight">
+          {modalType === "add" ? "Add ticket type" : "Edit ticket type"}
         </h3>
-        <form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
-          <div className="mt-4">
-            <label htmlFor="ticket-type" className="label">
-              <span className="label-text">Ticket Type Name</span>
+
+        <form
+          className="mt-4 space-y-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            handleSave();
+          }}
+        >
+          <div>
+            <label htmlFor="ticket-type" className="desk-label">
+              Name
             </label>
             <input
               id="ticket-type"
               type="text"
-              placeholder="Ticket Type (required)"
+              placeholder="Adult, Student…"
               value={currentTicket.type}
-              onChange={(e) => {
-                setCurrentTicket({ ...currentTicket, type: e.target.value });
+              onChange={(event) => {
+                setCurrentTicket({
+                  ...currentTicket,
+                  type: event.target.value,
+                });
                 if (errors.type) setErrors({ ...errors, type: "" });
               }}
-              className={`input input-bordered w-full mb-4 bg-neutral ${errors.type ? 'input-error' : ''}`}
+              className={`desk-field ${errors.type ? "border-[color:var(--danger)]" : ""}`}
               aria-describedby={errors.type ? "type-error" : undefined}
               aria-invalid={!!errors.type}
+              autoFocus
             />
-            {errors.type && <p id="type-error" className="text-error text-sm mb-2" role="alert">{errors.type}</p>}
-            
-            <label htmlFor="price-czk" className="label">
-              <span className="label-text">Price in CZK</span>
+            {errors.type && (
+              <p
+                id="type-error"
+                className="mt-1 text-sm text-[color:var(--danger)]"
+                role="alert"
+              >
+                {errors.type}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label htmlFor="price-czk" className="desk-label">
+              Price CZK
             </label>
-            <div className="flex mb-4">
+            <div className="flex">
               <input
                 id="price-czk"
                 type="text"
-                placeholder="Price in CZK (optional, defaults to 0)"
+                inputMode="decimal"
+                placeholder="0"
                 value={currentTicket.priceCZK}
-                onChange={(e) => handlePriceChange("priceCZK", e.target.value)}
-                className="input input-bordered rounded-r-none flex-1 w-full bg-neutral"
+                onChange={(event) =>
+                  handlePriceChange("priceCZK", event.target.value)
+                }
+                className="desk-field desk-field-mono rounded-none border-r-0"
                 aria-label="Price in Czech Koruna"
               />
-              <input
-                type="text"
-                value="CZK"
-                className="input input-bordered rounded-l-none bg-gray-200 text-gray-600 w-16 flex-none"
-                disabled
-                aria-hidden="true"
-              />
+              <span className="flex h-12 items-center border-2 border-l-0 border-[color:var(--ink)] bg-[color:var(--paper)] px-3 font-mono text-sm font-semibold">
+                CZK
+              </span>
             </div>
-            
-            <label htmlFor="price-eur" className="label">
-              <span className="label-text">Price in EUR</span>
+          </div>
+
+          <div>
+            <label htmlFor="price-eur" className="desk-label">
+              Price EUR
             </label>
-            <div className="flex mb-2">
+            <div className="flex">
               <input
                 id="price-eur"
                 type="text"
-                placeholder="Price in EUR (optional, defaults to 0)"
+                inputMode="decimal"
+                placeholder="0"
                 value={currentTicket.priceEUR}
-                onChange={(e) => handlePriceChange("priceEUR", e.target.value)}
-                className="input input-bordered rounded-r-none flex-1 w-full bg-neutral"
+                onChange={(event) =>
+                  handlePriceChange("priceEUR", event.target.value)
+                }
+                className="desk-field desk-field-mono rounded-none border-r-0"
                 aria-label="Price in Euro"
               />
-              <input
-                type="text"
-                value="EUR"
-                className="input input-bordered rounded-l-none bg-gray-200 text-gray-600 w-16 flex-none"
-                disabled
-                aria-hidden="true"
-              />
+              <span className="flex h-12 items-center border-2 border-l-0 border-[color:var(--ink)] bg-[color:var(--paper)] px-3 font-mono text-sm font-semibold">
+                EUR
+              </span>
             </div>
           </div>
-          <div className="modal-action">
-            <button
-              type="submit"
-              className="btn btn-primary"
-              aria-label="Save ticket type"
-            >
-              Save
-            </button>
-            <button
-              type="button"
-              className="btn btn-neutral"
-              onClick={handleClose}
-              aria-label="Cancel and close modal"
-            >
+
+          <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
+            <button type="button" className="desk-btn-ghost" onClick={onClose}>
               Cancel
+            </button>
+            <button type="submit" className="desk-btn-primary">
+              Save
             </button>
           </div>
         </form>

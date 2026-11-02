@@ -1,4 +1,224 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --ink: #12141a;
+  --paper: #eceef2;
+  --paper-2: #f3f4f6;
+  --rule: #c5cad3;
+  --amber: #b45309;
+  --teal: #0f766e;
+  --danger: #b91c1c;
+  --press: 100ms;
+  --settle: 280ms;
+  --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+@layer base {
+  html {
+    font-size: 16px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    min-height: 100vh;
+    margin: 0;
+    font-family: "IBM Plex Sans", ui-sans-serif, sans-serif;
+    color: var(--ink);
+    background: var(--paper-2);
+  }
+
+  ::selection {
+    background: rgba(180, 83, 9, 0.22);
+  }
+}
+
+@layer components {
+  .desk-shell {
+    @apply mx-auto w-full max-w-3xl px-4 pb-36 pt-6 sm:px-6 sm:pt-8;
+  }
+
+  .desk-brand {
+    @apply mb-8;
+  }
+
+  .desk-brand h1 {
+    font-size: clamp(2rem, 5vw, 2.75rem);
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+    font-weight: 700;
+  }
+
+  .desk-brand p {
+    @apply mt-1 text-base text-base-content/60;
+    letter-spacing: 0.01em;
+  }
+
+  .desk-panel {
+    @apply border-2 border-[color:var(--ink)] bg-[color:var(--paper-2)];
+    box-shadow: 0 1px 0 rgba(18, 20, 26, 0.04);
+  }
+
+  .desk-label {
+    @apply mb-2 block text-xs font-semibold uppercase tracking-[0.08em] text-base-content/55;
+  }
+
+  .desk-field {
+    @apply h-12 w-full border-2 border-[color:var(--ink)] bg-white px-3 font-medium outline-none transition-[border-color,box-shadow,transform] duration-[var(--settle)] ease-[var(--ease)];
+  }
+
+  .desk-field:focus {
+    border-color: var(--amber);
+    box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.2);
+  }
+
+  .desk-field-mono {
+    @apply font-mono text-lg tabular-nums;
+  }
+
+  .desk-btn {
+    @apply inline-flex h-12 min-w-[2.75rem] items-center justify-center gap-2 border-2 border-[color:var(--ink)] px-4 text-sm font-semibold tracking-wide transition-[transform,background-color,box-shadow] duration-[var(--press)] ease-out;
+  }
+
+  .desk-btn:active {
+    transform: scale(0.97);
+  }
+
+  .desk-btn-primary {
+    @apply desk-btn bg-[color:var(--amber)] text-white;
+  }
+
+  .desk-btn-primary:hover {
+    background-color: #9a3412;
+  }
+
+  .desk-btn-ghost {
+    @apply desk-btn bg-transparent;
+  }
+
+  .desk-btn-ghost:hover {
+    background-color: rgba(18, 20, 26, 0.05);
+  }
+
+  .desk-btn-danger {
+    @apply desk-btn bg-white text-[color:var(--danger)];
+  }
+
+  .desk-btn-danger:hover {
+    background-color: #fef2f2;
+  }
+
+  .desk-btn-accent {
+    @apply desk-btn bg-[color:var(--teal)] text-white;
+  }
+
+  .segmented {
+    @apply grid grid-cols-2 border-2 border-[color:var(--ink)] bg-white;
+  }
+
+  .segmented button {
+    @apply h-12 text-sm font-semibold transition-[transform,background-color,color] duration-[var(--press)] ease-out;
+  }
+
+  .segmented button:active {
+    transform: scale(0.98);
+  }
+
+  .segmented button[aria-pressed="true"] {
+    background: var(--ink);
+    color: white;
+  }
+
+  .ticket-row {
+    @apply flex items-center justify-between gap-4 border-2 border-[color:var(--ink)] bg-white px-4 py-3;
+  }
+
+  .ticket-row.is-active {
+    background: #fffbeb;
+    border-color: var(--amber);
+  }
+
+  .counter-group {
+    @apply flex items-stretch overflow-hidden border-2 border-[color:var(--ink)] bg-[color:var(--paper)];
+  }
+
+  .counter-btn {
+    @apply flex h-14 w-14 shrink-0 items-center justify-center bg-white text-2xl font-semibold leading-none transition-[transform,background-color] duration-[var(--press)] ease-out;
+  }
+
+  .counter-btn:active {
+    transform: scale(0.96);
+    background: var(--paper-2);
+  }
+
+  .counter-btn:disabled {
+    @apply cursor-not-allowed opacity-35;
+    transform: none;
+  }
+
+  .counter-value {
+    @apply flex min-w-[3.25rem] items-center justify-center border-x-2 border-[color:var(--ink)] bg-white font-mono text-xl font-semibold tabular-nums;
+  }
+
+  .checkout-bar {
+    @apply fixed inset-x-0 bottom-0 z-40 border-t-2 border-[color:var(--ink)] py-3 backdrop-blur-xl backdrop-saturate-150;
+    background: color-mix(in srgb, var(--paper-2) 90%, transparent);
+  }
+
+  .checkout-inner {
+    @apply mx-auto flex w-full max-w-3xl flex-col gap-3 px-4 sm:flex-row sm:items-center sm:justify-between sm:px-6;
+  }
+
+  .money {
+    @apply font-mono font-semibold tabular-nums tracking-tight;
+  }
+
+  .modal-layer {
+    @apply fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6;
+  }
+
+  .modal-sheet {
+    @apply w-full max-w-md border-2 border-[color:var(--ink)] bg-[color:var(--paper-2)] p-5 shadow-desk sm:rounded-none;
+    animation: sheet-in var(--settle) var(--ease);
+  }
+
+  .alert-strip {
+    @apply mt-4 border-2 border-[color:var(--amber)] bg-[#fff7ed] px-3 py-2 text-sm text-[#9a3412];
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --press: 0ms;
+    --settle: 0ms;
+  }
+
+  .desk-btn:active,
+  .counter-btn:active,
+  .segmented button:active {
+    transform: none;
+  }
+
+  .modal-sheet {
+    animation: none;
+  }
+
+  .checkout-bar {
+    backdrop-filter: none;
+    background: var(--paper-2);
+  }
+}

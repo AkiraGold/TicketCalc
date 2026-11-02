@@ -1,13 +1,12 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import "./App.css";
-import "daisyui/dist/full.css";
 
-import { useTicketCalculator } from './hooks/useTicketCalculator';
-import Header from './components/Header';
-import TicketList from './components/TicketList';
-import Summary from './components/Summary';
-import TicketTypeManager from './components/TicketTypeManager';
-import TicketTypeModal from './components/TicketTypeModal';
+import { useTicketCalculator } from "./hooks/useTicketCalculator";
+import Header from "./components/Header";
+import TicketList from "./components/TicketList";
+import Summary from "./components/Summary";
+import TicketTypeManager from "./components/TicketTypeManager";
+import TicketTypeModal from "./components/TicketTypeModal";
 
 function App() {
   const {
@@ -32,7 +31,7 @@ function App() {
 
   const openModal = (type, ticket = null) => {
     setCurrentTicket(ticket);
-    setOriginalTicket(ticket); // Store the original ticket for editing
+    setOriginalTicket(ticket);
     setModalType(type);
   };
 
@@ -51,8 +50,13 @@ function App() {
     closeModal();
   };
 
+  const ticketCount = Object.values(tickets).reduce(
+    (sum, count) => sum + (Number(count) || 0),
+    0
+  );
+
   return (
-    <div className="container mx-auto p-4 grid grid-cols-1 gap-6">
+    <div className="desk-shell" data-theme="ticketdesk">
       <Header
         currency={currency}
         setCurrency={setCurrency}
@@ -60,11 +64,29 @@ function App() {
         setAmountReceived={setAmountReceived}
       />
 
-      <TicketList
+      <section className="mb-6" aria-labelledby="tickets-heading">
+        <div className="mb-3 flex items-end justify-between gap-3">
+          <h2 id="tickets-heading" className="text-lg font-semibold tracking-tight">
+            Tickets
+          </h2>
+          <p className="font-mono text-sm tabular-nums text-base-content/55">
+            {ticketCount} pcs
+          </p>
+        </div>
+
+        <TicketList
+          ticketTypes={ticketTypes}
+          tickets={tickets}
+          currency={currency}
+          onTicketChange={handleTicketChange}
+        />
+      </section>
+
+      <TicketTypeManager
         ticketTypes={ticketTypes}
-        tickets={tickets}
-        currency={currency}
-        onTicketChange={handleTicketChange}
+        onEdit={(ticket) => openModal("edit", ticket)}
+        onDelete={handleDeleteTicketType}
+        onAdd={() => openModal("add")}
       />
 
       <Summary
@@ -72,14 +94,8 @@ function App() {
         currency={currency}
         amountReceived={amountReceived}
         amountToGiveBack={amountToGiveBack}
+        ticketCount={ticketCount}
         onClear={clearTickets}
-      />
-
-      <TicketTypeManager
-        ticketTypes={ticketTypes}
-        onEdit={(ticket) => openModal("edit", ticket)}
-        onDelete={handleDeleteTicketType}
-        onAdd={() => openModal("add")}
       />
 
       <TicketTypeModal

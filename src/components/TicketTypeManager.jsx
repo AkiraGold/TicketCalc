@@ -1,104 +1,134 @@
-import React, { useState } from 'react';
+import { useEffect, useState } from "react";
 import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
 
 const TicketTypeManager = ({ ticketTypes, onEdit, onDelete, onAdd }) => {
+  const [open, setOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
-  const handleDeleteClick = (ticket) => {
-    setDeleteConfirm(ticket);
-  };
+  useEffect(() => {
+    if (!deleteConfirm) return undefined;
 
-  const confirmDelete = () => {
-    if (deleteConfirm) {
-      onDelete(deleteConfirm.id);
-      setDeleteConfirm(null);
-    }
-  };
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") setDeleteConfirm(null);
+    };
 
-  const cancelDelete = () => {
-    setDeleteConfirm(null);
-  };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [deleteConfirm]);
 
   return (
-    <div className="mt-2">
-      <div className="collapse collapse-arrow border border-base-300 bg-neutral rounded-box">
-        <input type="checkbox" />
-        <div className="collapse-title text-lg font-medium">Ticket Types</div>
-        <div className="collapse-content">
+    <section className="mb-4" aria-labelledby="types-heading">
+      <button
+        type="button"
+        className="desk-panel flex w-full items-center justify-between px-4 py-3 text-left"
+        aria-expanded={open}
+        aria-controls="ticket-types-panel"
+        onClick={() => setOpen((value) => !value)}
+      >
+        <div>
+          <h2 id="types-heading" className="text-base font-semibold tracking-tight">
+            Ticket types
+          </h2>
+          <p className="text-sm text-base-content/55">
+            {ticketTypes.length} configured · setup, not checkout
+          </p>
+        </div>
+        <span className="font-mono text-sm tabular-nums text-base-content/45">
+          {open ? "−" : "+"}
+        </span>
+      </button>
+
+      {open && (
+        <div
+          id="ticket-types-panel"
+          className="mt-3 space-y-3 border-2 border-[color:var(--ink)] bg-white p-3"
+        >
           {ticketTypes.map((ticket) => (
             <div
               key={ticket.id}
-              className="flex flex-row justify-between items-start md:items-center mb-4 md:mb-2"
+              className="flex flex-col gap-3 border-b border-[color:var(--rule)] pb-3 last:border-b-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
             >
-              <div className="flex-1">
-                <div className="flex flex-col md:flex-row md:items-center">
-                  <span className="font-bold">{ticket.type}</span>
-                  <span className="md:ml-4">
-                    {ticket.priceCZK} CZK / {ticket.priceEUR} EUR
-                  </span>
-                </div>
+              <div className="min-w-0">
+                <p className="truncate font-semibold">{ticket.type}</p>
+                <p className="font-mono text-sm tabular-nums text-base-content/55">
+                  {ticket.priceCZK} CZK / {ticket.priceEUR} EUR
+                </p>
               </div>
-              <div className="flex flex-row items-start md:items-center mt-2 md:mt-0">
+              <div className="flex gap-2">
                 <button
-                  className="btn btn-sm btn-secondary mr-2 mb-2 md:mb-0"
+                  type="button"
+                  className="desk-btn-ghost"
                   onClick={() => onEdit(ticket)}
                   aria-label={`Edit ${ticket.type} ticket type`}
                 >
                   <EditOutlined />
+                  Edit
                 </button>
                 <button
-                  className="btn btn-sm btn-error mb-2 md:mb-0"
-                  onClick={() => handleDeleteClick(ticket)}
+                  type="button"
+                  className="desk-btn-danger"
+                  onClick={() => setDeleteConfirm(ticket)}
                   aria-label={`Delete ${ticket.type} ticket type`}
                 >
                   <DeleteOutlined />
+                  Delete
                 </button>
               </div>
             </div>
           ))}
-          <div className="flex justify-center md:justify-center mt-4">
-            <button
-              className="btn btn-primary w-full md:w-auto"
-              onClick={onAdd}
-              aria-label="Add new ticket type"
-            >
-              Add New Ticket Type
-            </button>
-          </div>
-        </div>
-      </div>
 
-      {/* Delete Confirmation Modal */}
+          <button
+            type="button"
+            className="desk-btn-primary w-full"
+            onClick={onAdd}
+            aria-label="Add new ticket type"
+          >
+            Add ticket type
+          </button>
+        </div>
+      )}
+
       {deleteConfirm && (
-        <div className="modal modal-open">
-          <div className="modal-box">
-            <h3 className="font-bold text-lg text-error">Confirm Deletion</h3>
-            <p className="py-4">
-              Are you sure you want to delete the ticket type <strong>"{deleteConfirm.type}"</strong>?
+        <div
+          className="modal-layer"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-title"
+          onClick={() => setDeleteConfirm(null)}
+        >
+          <div
+            className="modal-sheet"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h3 id="delete-title" className="text-lg font-semibold tracking-tight text-[color:var(--danger)]">
+              Delete “{deleteConfirm.type}”?
+            </h3>
+            <p className="mt-2 text-sm text-base-content/65">
+              This removes the type and any counted tickets of this kind.
             </p>
-            <p className="text-sm text-warning mb-4">
-              This will also remove any existing tickets of this type.
-            </p>
-            <div className="modal-action">
+            <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <button
-                className="btn btn-error"
-                onClick={confirmDelete}
-                aria-label="Confirm delete ticket type"
-              >
-                Delete
-              </button>
-              <button
-                className="btn btn-neutral"
-                onClick={cancelDelete}
-                aria-label="Cancel deletion"
+                type="button"
+                className="desk-btn-ghost"
+                onClick={() => setDeleteConfirm(null)}
               >
                 Cancel
+              </button>
+              <button
+                type="button"
+                className="desk-btn-danger"
+                onClick={() => {
+                  onDelete(deleteConfirm.id);
+                  setDeleteConfirm(null);
+                }}
+              >
+                Delete type
               </button>
             </div>
           </div>
         </div>
       )}
-    </div>
+    </section>
   );
 };
 

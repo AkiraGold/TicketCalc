@@ -1,81 +1,67 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { getInitialState, saveToLocalStorage } from '../utils/localStorage';
+import { useState, useEffect, useMemo } from 'react';
+import {
+  getInitialState,
+  saveToLocalStorage,
+  clearLocalStorage,
+} from '../utils/localStorage';
 
-// Generate unique ID for new ticket types
 const generateId = () => {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 };
 
-// Migrate existing ticket types to have IDs
-const migrateTicketTypes = (ticketTypes) => {
-  return ticketTypes.map(ticket => {
-    if (ticket.id) return ticket; // Already has ID
-    return { ...ticket, id: generateId() }; // Add ID
-  });
+const defaultTicketTypes = () => [
+  { id: generateId(), type: "Adult", priceCZK: 200, priceEUR: 8 },
+  { id: generateId(), type: "Wheelchair", priceCZK: 150, priceEUR: 6 },
+];
+
+const isLegacyTicketTypes = (ticketTypes) =>
+  !Array.isArray(ticketTypes) ||
+  ticketTypes.some((ticket) => !ticket?.id);
+
+const loadTicketTypes = () => {
+  const savedTicketTypes = getInitialState("ticketTypes", null);
+
+  if (savedTicketTypes == null) {
+    return defaultTicketTypes();
+  }
+
+  if (isLegacyTicketTypes(savedTicketTypes)) {
+    clearLocalStorage("ticketTypes");
+    clearLocalStorage("tickets");
+    return defaultTicketTypes();
+  }
+
+  return savedTicketTypes.length
+    ? savedTicketTypes
+    : defaultTicketTypes();
 };
 
-// Migrate existing tickets object to use IDs instead of names
-const migrateTickets = (tickets, ticketTypes) => {
-  const migratedTickets = {};
-  
-  // Create a mapping from old names to new IDs
-  const nameToIdMap = {};
-  ticketTypes.forEach(ticket => {
-    nameToIdMap[ticket.type] = ticket.id;
-  });
-  
-  // Migrate existing ticket counts
-  Object.entries(tickets).forEach(([name, count]) => {
-    const id = nameToIdMap[name];
-    if (id) {
-      migratedTickets[id] = count;
-    }
-  });
-  
-  return migratedTickets;
+const loadTickets = (ticketTypes) => {
+  const savedTickets = getInitialState("tickets", {});
+  const validIds = new Set(ticketTypes.map((ticket) => ticket.id));
+  const hasLegacyKeys = Object.keys(savedTickets).some(
+    (key) => !validIds.has(key)
+  );
+
+  if (hasLegacyKeys) {
+    clearLocalStorage("tickets");
+    return {};
+  }
+
+  return savedTickets;
 };
 
 export const useTicketCalculator = () => {
   const [currency, setCurrency] = useState(() =>
     getInitialState("currency", "CZK", false)
   );
-  
-  const [ticketTypes, setTicketTypes] = useState(() => {
-    const savedTicketTypes = getInitialState('ticketTypes', []);
-    if (savedTicketTypes.length) {
-      // Migrate existing data to have IDs
-      return migrateTicketTypes(savedTicketTypes);
-    }
-    return [
-      { id: generateId(), type: "Adult", priceCZK: 200, priceEUR: 8 },
-      { id: generateId(), type: "Wheelchair", priceCZK: 150, priceEUR: 6 },
-    ];
-  });
-  
-  const [tickets, setTickets] = useState(() => getInitialState("tickets", {}));
+
+  const [ticketTypes, setTicketTypes] = useState(loadTicketTypes);
+  const [tickets, setTickets] = useState(() => loadTickets(ticketTypes));
   const [amountReceived, setAmountReceived] = useState(() =>
     getInitialState("amountReceived", "", false)
   );
 
-  // Ref to track pending ticket changes to prevent rapid successive calls
-  const pendingChanges = useRef(new Map());
-
-  // Migrate existing tickets to use IDs after ticketTypes are loaded
-  useEffect(() => {
-    if (ticketTypes.length > 0 && Object.keys(tickets).length > 0) {
-      // Check if tickets need migration (if they use names instead of IDs)
-      const needsMigration = Object.keys(tickets).some(key => 
-        !ticketTypes.find(ticket => ticket.id === key)
-      );
-      
-      if (needsMigration) {
-        const migratedTickets = migrateTickets(tickets, ticketTypes);
-        setTickets(migratedTickets);
-      }
-    }
-  }, [ticketTypes]); // Only run when ticketTypes change
-
-  // Save data to localStorage
   useEffect(() => {
     const results = {
       ticketTypes: saveToLocalStorage("ticketTypes", ticketTypes),
@@ -84,32 +70,16 @@ export const useTicketCalculator = () => {
       amountReceived: saveToLocalStorage("amountReceived", amountReceived),
     };
 
-    // Log storage status for debugging
-    const hasFailures = Object.values(results).some(result => !result.success);
+    const hasFailures = Object.values(results).some((result) => !result.success);
     if (hasFailures) {
       console.warn("Some data failed to save to localStorage:", results);
     }
   }, [ticketTypes, tickets, currency, amountReceived]);
 
   const handleTicketChange = (ticketId, delta) => {
-    // Check if there's already a pending change for this ticket
-    const pendingKey = `${ticketId}-${delta > 0 ? 'increment' : 'decrement'}`;
-    if (pendingChanges.current.has(pendingKey)) {
-      return;
-    }
-
-    // Mark this change as pending
-    pendingChanges.current.set(pendingKey, true);
-    
     setTickets((prev) => {
       const currentCount = prev[ticketId] || 0;
       const newCount = Math.max(0, currentCount + delta);
-      
-      // Remove the pending flag after state update
-      setTimeout(() => {
-        pendingChanges.current.delete(pendingKey);
-      }, 100);
-      
       return {
         ...prev,
         [ticketId]: newCount,
@@ -118,7 +88,6 @@ export const useTicketCalculator = () => {
   };
 
   const handleAddTicketType = (newTicket) => {
-    // Ensure prices are numbers, default to 0 if empty, and add unique ID
     const validatedTicket = {
       id: generateId(),
       ...newTicket,
@@ -129,10 +98,9 @@ export const useTicketCalculator = () => {
   };
 
   const handleEditTicketType = (originalTicket, updatedTicket) => {
-    // Ensure prices are numbers, default to 0 if empty, and preserve ID
     const validatedTicket = {
       ...updatedTicket,
-      id: originalTicket.id, // Preserve the original ID
+      id: originalTicket.id,
       priceCZK: updatedTicket.priceCZK || 0,
       priceEUR: updatedTicket.priceEUR || 0,
     };
@@ -142,23 +110,10 @@ export const useTicketCalculator = () => {
         ticket.id === originalTicket.id ? validatedTicket : ticket
       )
     );
-
-    // If the ticket type name changed, update the tickets object
-    if (originalTicket.type !== validatedTicket.type) {
-      setTickets((prev) => {
-        const newTickets = { ...prev };
-        if (newTickets[originalTicket.id] !== undefined) {
-          newTickets[validatedTicket.id] = newTickets[originalTicket.id];
-          delete newTickets[originalTicket.id];
-        }
-        return newTickets;
-      });
-    }
   };
 
   const handleDeleteTicketType = (ticketId) => {
     setTicketTypes(ticketTypes.filter((ticket) => ticket.id !== ticketId));
-    // Also remove tickets of this type
     setTickets((prev) => {
       const newTickets = { ...prev };
       delete newTickets[ticketId];
@@ -170,7 +125,6 @@ export const useTicketCalculator = () => {
     setTickets({});
   };
 
-  // Memoize calculations for better performance
   const total = useMemo(() => {
     return ticketTypes.reduce((sum, ticket) => {
       const count = tickets[ticket.id] || 0;
@@ -184,19 +138,14 @@ export const useTicketCalculator = () => {
   }, [amountReceived, total]);
 
   return {
-    // State
     currency,
     setCurrency,
     ticketTypes,
     tickets,
     amountReceived,
     setAmountReceived,
-    
-    // Computed values
     total,
     amountToGiveBack,
-    
-    // Actions
     handleTicketChange,
     handleAddTicketType,
     handleEditTicketType,
