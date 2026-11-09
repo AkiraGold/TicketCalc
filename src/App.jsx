@@ -63,47 +63,49 @@ function App() {
         setAmountReceived={setAmountReceived}
       />
 
-      <section className="mb-6" aria-labelledby="tickets-heading">
-        <div className="mb-3 flex items-end justify-between gap-3">
-          <h2 id="tickets-heading" className="text-lg font-semibold tracking-tight">
-            Tickets
-          </h2>
-          <p className="font-mono text-sm tabular-nums text-base-content/55">
-            {ticketCount} pcs
-          </p>
-        </div>
+      <main>
+        <section className="mb-6" aria-labelledby="tickets-heading">
+          <div className="mb-3 flex items-end justify-between gap-3">
+            <h2 id="tickets-heading" className="text-lg font-semibold tracking-tight">
+              Tickets
+            </h2>
+            <p className="font-mono text-sm tabular-nums text-base-content/55">
+              {ticketCount} pcs
+            </p>
+          </div>
 
-        <TicketList
+          <TicketList
+            ticketTypes={ticketTypes}
+            tickets={tickets}
+            currency={currency}
+            onTicketChange={handleTicketChange}
+          />
+        </section>
+
+        <TicketTypeManager
           ticketTypes={ticketTypes}
-          tickets={tickets}
-          currency={currency}
-          onTicketChange={handleTicketChange}
+          onEdit={(ticket) => openModal("edit", ticket)}
+          onDelete={handleDeleteTicketType}
+          onAdd={() => openModal("add")}
         />
-      </section>
 
-      <TicketTypeManager
-        ticketTypes={ticketTypes}
-        onEdit={(ticket) => openModal("edit", ticket)}
-        onDelete={handleDeleteTicketType}
-        onAdd={() => openModal("add")}
-      />
+        <Summary
+          total={total}
+          currency={currency}
+          amountReceived={amountReceived}
+          amountToGiveBack={amountToGiveBack}
+          ticketCount={ticketCount}
+          onClear={clearTickets}
+        />
 
-      <Summary
-        total={total}
-        currency={currency}
-        amountReceived={amountReceived}
-        amountToGiveBack={amountToGiveBack}
-        ticketCount={ticketCount}
-        onClear={clearTickets}
-      />
-
-      <TicketTypeModal
-        isOpen={modalType !== null}
-        modalType={modalType}
-        ticket={currentTicket}
-        onSave={handleSaveTicket}
-        onClose={closeModal}
-      />
+        <TicketTypeModal
+          isOpen={modalType !== null}
+          modalType={modalType}
+          ticket={currentTicket}
+          onSave={handleSaveTicket}
+          onClose={closeModal}
+        />
+      </main>
     </div>
   );
 }
