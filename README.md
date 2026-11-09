@@ -20,6 +20,7 @@ Set the currency and amount received, tap +/− on each ticket type, read total 
 
 - React 18, Vite 5
 - Tailwind CSS 3, DaisyUI 4
+- IBM Plex Sans / Mono via Fontsource (self-hosted)
 - Bun (`bun.lock`) for install and scripts
 
 Client-only — no backend.
