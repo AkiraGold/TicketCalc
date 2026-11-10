@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { formatMoney } from "../utils/formatMoney";
+import { hasAmountReceived } from "../utils/amount";
+import { useDialogA11y } from "../hooks/useDialogA11y";
 
 const Summary = ({
   total,
@@ -10,20 +12,11 @@ const Summary = ({
   onClear,
 }) => {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
-  const hasReceived = amountReceived !== "" && amountReceived !== null;
+  const closeClearConfirm = () => setShowClearConfirm(false);
+  const dialogRef = useDialogA11y(showClearConfirm, closeClearConfirm);
+  const hasReceived = hasAmountReceived(amountReceived);
   const shortfall = hasReceived && amountToGiveBack < 0;
   const change = hasReceived ? Math.max(0, amountToGiveBack) : null;
-
-  useEffect(() => {
-    if (!showClearConfirm) return undefined;
-
-    const onKeyDown = (event) => {
-      if (event.key === "Escape") setShowClearConfirm(false);
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [showClearConfirm]);
 
   return (
     <>
@@ -78,9 +71,10 @@ const Summary = ({
           role="dialog"
           aria-modal="true"
           aria-labelledby="clear-title"
-          onClick={() => setShowClearConfirm(false)}
+          onClick={closeClearConfirm}
         >
           <div
+            ref={dialogRef}
             className="modal-sheet"
             onClick={(event) => event.stopPropagation()}
           >
@@ -94,7 +88,7 @@ const Summary = ({
               <button
                 type="button"
                 className="desk-btn-ghost"
-                onClick={() => setShowClearConfirm(false)}
+                onClick={closeClearConfirm}
               >
                 Cancel
               </button>
@@ -103,7 +97,7 @@ const Summary = ({
                 className="desk-btn-danger"
                 onClick={() => {
                   onClear();
-                  setShowClearConfirm(false);
+                  closeClearConfirm();
                 }}
               >
                 Clear counts

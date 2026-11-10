@@ -15,6 +15,7 @@ function App() {
     tickets,
     amountReceived,
     setAmountReceived,
+    usingMemoryFallback,
     total,
     amountToGiveBack,
     handleTicketChange,
@@ -61,6 +62,7 @@ function App() {
         setCurrency={setCurrency}
         amountReceived={amountReceived}
         setAmountReceived={setAmountReceived}
+        usingMemoryFallback={usingMemoryFallback}
       />
 
       <main>

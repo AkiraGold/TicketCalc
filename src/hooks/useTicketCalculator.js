@@ -4,6 +4,16 @@ import {
   saveToLocalStorage,
   clearLocalStorage,
 } from '../utils/localStorage';
+import {
+  hasAmountReceived,
+  normalizeAmountReceived,
+} from '../utils/amount';
+import {
+  clampMoney,
+  clampTicketCount,
+  clampUnitPrice,
+  lineTotal,
+} from '../utils/money';
 
 const generateId = () => {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -13,6 +23,13 @@ const defaultTicketTypes = () => [
   { id: generateId(), type: "Adult", priceCZK: 200, priceEUR: 8 },
   { id: generateId(), type: "Wheelchair", priceCZK: 150, priceEUR: 6 },
 ];
+
+const sanitizeTicketType = (ticket) => ({
+  ...ticket,
+  type: typeof ticket?.type === "string" ? ticket.type : "",
+  priceCZK: clampUnitPrice(ticket?.priceCZK),
+  priceEUR: clampUnitPrice(ticket?.priceEUR),
+});
 
 const isLegacyTicketTypes = (ticketTypes) =>
   !Array.isArray(ticketTypes) ||
@@ -31,36 +48,43 @@ const loadTicketTypes = () => {
     return defaultTicketTypes();
   }
 
-  return savedTicketTypes.length
-    ? savedTicketTypes
-    : defaultTicketTypes();
+  return savedTicketTypes.map(sanitizeTicketType);
 };
 
 const loadTickets = (ticketTypes) => {
   const savedTickets = getInitialState("tickets", {});
   const validIds = new Set(ticketTypes.map((ticket) => ticket.id));
-  const hasLegacyKeys = Object.keys(savedTickets).some(
-    (key) => !validIds.has(key)
-  );
+  const pruned = {};
+  let changed = false;
 
-  if (hasLegacyKeys) {
-    clearLocalStorage("tickets");
-    return {};
+  Object.entries(savedTickets).forEach(([key, count]) => {
+    if (!validIds.has(key)) {
+      changed = true;
+      return;
+    }
+    const nextCount = clampTicketCount(count);
+    pruned[key] = nextCount;
+    if (nextCount !== count) changed = true;
+  });
+
+  if (changed || Object.keys(pruned).length !== Object.keys(savedTickets).length) {
+    saveToLocalStorage("tickets", pruned);
   }
 
-  return savedTickets;
+  return pruned;
 };
 
 export const useTicketCalculator = () => {
-  const [currency, setCurrency] = useState(() =>
+  const [currency, setCurrencyState] = useState(() =>
     getInitialState("currency", "CZK", false)
   );
 
   const [ticketTypes, setTicketTypes] = useState(loadTicketTypes);
   const [tickets, setTickets] = useState(() => loadTickets(ticketTypes));
   const [amountReceived, setAmountReceived] = useState(() =>
-    getInitialState("amountReceived", "", false)
+    normalizeAmountReceived(getInitialState("amountReceived", "", false))
   );
+  const [usingMemoryFallback, setUsingMemoryFallback] = useState(false);
 
   useEffect(() => {
     const results = {
@@ -70,16 +94,30 @@ export const useTicketCalculator = () => {
       amountReceived: saveToLocalStorage("amountReceived", amountReceived),
     };
 
+    const usedMemory = Object.values(results).some(
+      (result) => result.method === "memory" || !result.success
+    );
+    setUsingMemoryFallback(usedMemory);
+
     const hasFailures = Object.values(results).some((result) => !result.success);
     if (hasFailures) {
       console.warn("Some data failed to save to localStorage:", results);
     }
   }, [ticketTypes, tickets, currency, amountReceived]);
 
+  const setCurrency = (nextCurrency) => {
+    setCurrencyState((prev) => {
+      if (prev !== nextCurrency) {
+        setAmountReceived("");
+      }
+      return nextCurrency;
+    });
+  };
+
   const handleTicketChange = (ticketId, delta) => {
     setTickets((prev) => {
       const currentCount = prev[ticketId] || 0;
-      const newCount = Math.max(0, currentCount + delta);
+      const newCount = clampTicketCount(currentCount + delta);
       return {
         ...prev,
         [ticketId]: newCount,
@@ -88,22 +126,18 @@ export const useTicketCalculator = () => {
   };
 
   const handleAddTicketType = (newTicket) => {
-    const validatedTicket = {
+    const validatedTicket = sanitizeTicketType({
       id: generateId(),
       ...newTicket,
-      priceCZK: newTicket.priceCZK || 0,
-      priceEUR: newTicket.priceEUR || 0,
-    };
+    });
     setTicketTypes([...ticketTypes, validatedTicket]);
   };
 
   const handleEditTicketType = (originalTicket, updatedTicket) => {
-    const validatedTicket = {
+    const validatedTicket = sanitizeTicketType({
       ...updatedTicket,
       id: originalTicket.id,
-      priceCZK: updatedTicket.priceCZK || 0,
-      priceEUR: updatedTicket.priceEUR || 0,
-    };
+    });
 
     setTicketTypes(
       ticketTypes.map((ticket) =>
@@ -126,15 +160,18 @@ export const useTicketCalculator = () => {
   };
 
   const total = useMemo(() => {
-    return ticketTypes.reduce((sum, ticket) => {
-      const count = tickets[ticket.id] || 0;
-      const price = currency === "CZK" ? ticket.priceCZK : ticket.priceEUR;
-      return sum + count * price;
-    }, 0);
+    return clampMoney(
+      ticketTypes.reduce((sum, ticket) => {
+        const count = tickets[ticket.id] || 0;
+        const price = currency === "CZK" ? ticket.priceCZK : ticket.priceEUR;
+        return sum + lineTotal(count, price);
+      }, 0)
+    );
   }, [ticketTypes, tickets, currency]);
 
   const amountToGiveBack = useMemo(() => {
-    return amountReceived ? amountReceived - total : 0;
+    if (!hasAmountReceived(amountReceived)) return 0;
+    return clampMoney(amountReceived) - total;
   }, [amountReceived, total]);
 
   return {
@@ -144,6 +181,7 @@ export const useTicketCalculator = () => {
     tickets,
     amountReceived,
     setAmountReceived,
+    usingMemoryFallback,
     total,
     amountToGiveBack,
     handleTicketChange,

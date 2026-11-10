@@ -1,9 +1,18 @@
 import { useState } from "react";
 import { isLocalStorageAvailable } from "../utils/localStorage";
+import { normalizeAmountReceived } from "../utils/amount";
+import { MAX_MONEY } from "../utils/money";
 import SiteLinkButton from "./SiteLinkButton";
 
-const Header = ({ currency, setCurrency, amountReceived, setAmountReceived }) => {
+const Header = ({
+  currency,
+  setCurrency,
+  amountReceived,
+  setAmountReceived,
+  usingMemoryFallback = false,
+}) => {
   const [storageOk] = useState(() => isLocalStorageAvailable());
+  const showStorageWarning = !storageOk || usingMemoryFallback;
 
   return (
     <header className="desk-brand">
@@ -12,9 +21,9 @@ const Header = ({ currency, setCurrency, amountReceived, setAmountReceived }) =>
         <SiteLinkButton />
       </div>
 
-      {!storageOk && (
+      {showStorageWarning && (
         <div className="alert-strip" role="alert" aria-live="polite">
-          Session only — localStorage unavailable. Counts reset on refresh.
+          Session only. Data may reset on refresh.
         </div>
       )}
 
@@ -51,14 +60,12 @@ const Header = ({ currency, setCurrency, amountReceived, setAmountReceived }) =>
             inputMode="decimal"
             value={amountReceived}
             onChange={(e) =>
-              setAmountReceived(
-                e.target.value === "" ? "" : Number(e.target.value)
-              )
+              setAmountReceived(normalizeAmountReceived(e.target.value))
             }
             className="desk-field desk-field-mono"
             placeholder="0.00"
-            aria-label="Enter amount received from customer"
             min="0"
+            max={MAX_MONEY}
             step="0.01"
           />
         </div>

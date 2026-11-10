@@ -85,6 +85,13 @@
     transform: scale(0.97);
   }
 
+  .desk-btn:focus-visible,
+  .counter-btn:focus-visible,
+  .segmented button:focus-visible {
+    outline: 3px solid rgba(180, 83, 9, 0.35);
+    outline-offset: 2px;
+  }
+
   .desk-btn-primary {
     @apply desk-btn bg-[color:var(--amber)] text-white;
   }

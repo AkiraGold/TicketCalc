@@ -1,9 +1,11 @@
 import { formatMoney } from "../utils/formatMoney";
+import { MAX_TICKET_COUNT, lineTotal as calcLineTotal } from "../utils/money";
 
 const TicketCounter = ({ ticket, currency, count, onTicketChange }) => {
   const unitPrice = currency === "CZK" ? ticket.priceCZK : ticket.priceEUR;
-  const lineTotal = count * unitPrice;
+  const lineTotal = calcLineTotal(count, unitPrice);
   const active = count > 0;
+  const atMax = count >= MAX_TICKET_COUNT;
 
   return (
     <div className={`ticket-row ${active ? "is-active" : ""}`}>
@@ -47,6 +49,7 @@ const TicketCounter = ({ ticket, currency, count, onTicketChange }) => {
           type="button"
           className="counter-btn"
           onClick={() => onTicketChange(ticket.id, 1)}
+          disabled={atMax}
           aria-label={`Increase ${ticket.type} ticket count`}
           aria-describedby={`ticket-count-${ticket.id}`}
         >

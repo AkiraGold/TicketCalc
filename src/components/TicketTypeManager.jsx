@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useDialogA11y } from "../hooks/useDialogA11y";
 
 function EditIcon() {
   return (
@@ -44,17 +45,8 @@ function DeleteIcon() {
 const TicketTypeManager = ({ ticketTypes, onEdit, onDelete, onAdd }) => {
   const [open, setOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
-
-  useEffect(() => {
-    if (!deleteConfirm) return undefined;
-
-    const onKeyDown = (event) => {
-      if (event.key === "Escape") setDeleteConfirm(null);
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [deleteConfirm]);
+  const closeDeleteConfirm = () => setDeleteConfirm(null);
+  const dialogRef = useDialogA11y(!!deleteConfirm, closeDeleteConfirm);
 
   return (
     <section className="mb-4" aria-labelledby="types-heading">
@@ -66,12 +58,12 @@ const TicketTypeManager = ({ ticketTypes, onEdit, onDelete, onAdd }) => {
         onClick={() => setOpen((value) => !value)}
       >
         <div>
-          <h2 id="types-heading" className="text-base font-semibold tracking-tight">
+          <span id="types-heading" className="block text-base font-semibold tracking-tight">
             Ticket types
-          </h2>
-          <p className="text-sm text-base-content/55">
+          </span>
+          <span className="block text-sm text-base-content/55">
             {ticketTypes.length} configured · setup, not checkout
-          </p>
+          </span>
         </div>
         <span className="font-mono text-sm tabular-nums text-base-content/45">
           {open ? "−" : "+"}
@@ -134,9 +126,10 @@ const TicketTypeManager = ({ ticketTypes, onEdit, onDelete, onAdd }) => {
           role="dialog"
           aria-modal="true"
           aria-labelledby="delete-title"
-          onClick={() => setDeleteConfirm(null)}
+          onClick={closeDeleteConfirm}
         >
           <div
+            ref={dialogRef}
             className="modal-sheet"
             onClick={(event) => event.stopPropagation()}
           >
@@ -150,7 +143,7 @@ const TicketTypeManager = ({ ticketTypes, onEdit, onDelete, onAdd }) => {
               <button
                 type="button"
                 className="desk-btn-ghost"
-                onClick={() => setDeleteConfirm(null)}
+                onClick={closeDeleteConfirm}
               >
                 Cancel
               </button>
@@ -159,7 +152,7 @@ const TicketTypeManager = ({ ticketTypes, onEdit, onDelete, onAdd }) => {
                 className="desk-btn-danger"
                 onClick={() => {
                   onDelete(deleteConfirm.id);
-                  setDeleteConfirm(null);
+                  closeDeleteConfirm();
                 }}
               >
                 Delete type
